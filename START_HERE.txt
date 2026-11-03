@@ -1,0 +1,59 @@
+Stickman Hybrid: make stickman documentary explainers on any topic with Antigravity:
+clean full-colour scenes plus cut-out stickers that pop in on the spoken words
+(the style of the viral "ancient humans" and stick-figure explainer channels)
+
+Before this, set up Flow Connector: open the extension's side panel, Setup -> Copy setup
+prompt, and paste that into your Antigravity chat.
+
+Then do ONE of these:
+
+  A) Open this folder in Antigravity (as a workspace) and type in chat:
+       start
+     or:
+       stickman hybrid start
+
+  B) In any Antigravity chat, type:
+       stickman-animation is in my Downloads folder. Read GEMINI.md and follow the one-time setup.
+
+Antigravity installs/syncs the skills globally (~/.gemini/config/skills/), verifies
+your environment (Node.js, Flow Connector, FFmpeg with libass, Python packages, sound kit),
+and guides you through making your video. Afterwards it works from ANY chat:
+    stickman hybrid start        a new video
+    stickman hybrid continue     carry on where you stopped
+
+You choose the topic (or ask for 10 ideas), the language and the length. Antigravity
+picks the look that suits the topic (bright, warm, ink, painted or night) and
+shows you three checkpoints:
+  1. The script & expressive tags
+  2. The voice (VO.wav merge or automated VO)
+  3. The final video
+
+(Agents: read GEMINI.md and README.md in this folder and follow them.)
+
+---
+
+Hindi / Hinglish:
+
+Pehle Flow Connector set karo: extension ka side panel kholo, Setup -> Copy setup
+prompt, aur woh Antigravity chat mein paste karo.
+
+Phir in dono mein se KOI EK karo:
+
+  A) Is folder ko Antigravity mein kholo aur likho:
+       start
+     ya:
+       stickman hybrid start
+
+  B) Kisi bhi Antigravity chat mein yeh likho:
+       Mere Downloads folder mein stickman-animation hai. Andar ka GEMINI.md padho aur follow karo.
+
+Antigravity sab install karega (~/.gemini/config/skills/ mein), setup verify karega,
+phir video banayega. Uske baad yeh KISI BHI chat se chalega:
+    stickman hybrid start        nayi video
+    stickman hybrid continue     jahan chhoda tha wahin se
+
+Aap topic do (ya 10 ideas maango), bhasha aur length bhi aap chuno.
+Aapko sirf teen cheezein dikhayi jayengi:
+  1. Script aur expressive tags
+  2. Awaaz (VO.wav merge ya automated voice)
+  3. Final video!

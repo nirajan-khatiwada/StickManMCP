@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+parlerenv/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Secrets and local environment files
+.env
+.env.local
+*.secret
+*.token
+access_token
+kaggle.json
+
+# Temporary & test outputs
+*.log
+*.tmp
+*.temp
+selfcheck_*.png
+delama_selfcheck.png
+
+# Operating System artifacts
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Output audio and video artifacts (active projects belong in ~/StickmanHybrid/)
+VO.wav
+takes/
+runs/
+*.mp4
