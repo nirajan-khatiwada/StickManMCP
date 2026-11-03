@@ -7,13 +7,13 @@ Every look file has the same four parts:
 - **Character sheet**: the prompt for the one sheet that every character shot references.
 - **Notes**: what went wrong before, and how to avoid it.
 
-| Look | Feels like | Best for | Text card |
+| Look | Feels like | Best for | Palette notes |
 |---|---|---|---|
-| `bright` | clean flat cartoon: blue skies, greens, white rooms | science, health, everyday-things history, anything that cuts between today and the past (the DEFAULT) | light cream to pale blue |
-| `warm` | golden ochre, painterly, cosy | ancient humans, civilisation, religion, Indian history, Hindi audiences | ochre |
-| `ink` | black ink line on off-white, a few flat colour accents | "explained" topics full of numbers and comparisons, psychology, money | white paper |
-| `painted` | detailed painted places, muted and cinematic, one recurring hero | survival stories, "you" serials, disasters, war | grey-blue |
-| `night` | deep blue night, firelight and moonlight | mysteries, dark history, space, horror-lite | dark navy, cream words |
+| `bright` | clean flat cartoon: blue skies, greens, white rooms | science, health, everyday-things history, anything that cuts between today and the past (the DEFAULT) | light cream, bright blues & greens |
+| `warm` | golden ochre, painterly, cosy | ancient humans, civilisation, religion, Indian history, Hindi audiences | ochre, earthy tones |
+| `ink` | black ink line on off-white, a few flat colour accents | "explained" topics full of numbers and comparisons, psychology, money | clean ink line, minimal accents |
+| `painted` | detailed painted places, muted and cinematic, one recurring hero | survival stories, "you" serials, disasters, war | muted natural colours, stone greys |
+| `night` | deep blue night, firelight and moonlight | mysteries, dark history, space, horror-lite | dark navy, deep blues & teals |
 
 ## Adapting a look to the topic
 - Edit the STYLE paragraph in the project's `STYLE.txt` to suit the topic. For example, add

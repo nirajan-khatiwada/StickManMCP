@@ -5,30 +5,31 @@ Run it from the project folder:
     python <skill>/scripts/render.py --audio VO.wav --out draft.mp4
     python <skill>/scripts/render.py --selfcheck     # renders a test card (Latin + Hindi) and exits
 
+NO TEXT ANYWHERE IN THE VIDEO. The film shows pictures and cut-out stickers only: no tags, captions,
+labels, counters, numbers, bar charts or title cards. render.py stops with an error on any row that
+contains text, tags, counters, bar charts, or full-screen "card" scenes.
+
 SCENES.tsv (tab separated, '#' lines ignored, header 'cue img text pos extra'):
   cue    line.word from WORDS.tsv (07.0 = line 07, word 0). The scene starts on that spoken word.
-  img    picture path in the project (img/s07.jpg), or "card" for a plain text card
-  text   words drawn in code. "|" = new line. Leave EMPTY on most pictures (PLAYBOOK rule 6)
-  pos    leave empty: the tag goes to the quietest corner so it never covers a face.
-         Force a spot only if needed: top! tl! tr! bottom! bl! br!
-  extra  optional bar chart: bars:RAW=51,COOKED=91 (values in %, drawn on a card at the right)
+  img    picture path in the project (img/s07.jpg). The picture stays on screen for the whole scene.
+  text   empty (no on-screen text)
+  pos    empty
+  extra  empty
 
 Hybrid look (stills + cut-out stickers, PLAYBOOK section 9): a row whose cue starts with "+" adds
-an overlay to the scene above it, popping in on that spoken word:
+a sticker to the scene above it, popping in on that spoken word:
   +cue   line.word when it appears (inside the scene)
-  img    elements/cut/NN.png | count (an animated number) | tag (a plain sticky-note tag)
-  text   label under the sticker; for count: "14000|YEARS OLD" (number|caption); for tag: the words
+  img    elements/cut/NN.png (cut-out sticker PNG)
+  text   empty (a sticker never carries a label or text)
   pos    auto[,h] (default auto,0.42): the quietest free spot of the picture, so a sticker never covers
          a face; or x,y,h = centre x, centre y and height as fractions of the frame (0.72,0.55,0.45)
-  extra  pop (default) | slideL | slideR | rise; add +plain for no white sticker border ("no" signs). (+x draws a code strike-out; a reviewer disliked it.
-         For "no fridge, no fire" generate the sticker WITH a red no-sign instead, PLAYBOOK §9.)
+  extra  pop (default) | slideL | slideR | rise; add +plain for no white sticker border ("no" signs).
+         For "no fridge, no fire" generate the sticker WITH a red no-sign instead, PLAYBOOK section 9.
+Visual beats come from cuts to new pictures and from stickers popping in on spoken words.
 With overlay rows the film is rendered frame by frame (30 fps); without them, as plain stills.
 
-The look (text card colours) comes from the first line of STYLE.txt ("look: bright"),
-or --look. Pictures: img/clean/<name>.png (LaMa, from delama.py) is used when present.
-Fonts: Patrick Hand for Latin text, Kalam for Devanagari and other scripts;
-complex scripts go through libass (ffmpeg) because Pillow alone breaks Hindi conjuncts.
-Override with STICK_FONT / STICK_FONT_COMPLEX (a .ttf path).
+Pictures: img/clean/<name>.png (LaMa, from delama.py) is used when present.
+(The font and libass code below only serves --selfcheck; the film itself contains no text.)
 """
 import argparse, csv, os, shutil, subprocess, sys, tempfile
 import numpy as np
@@ -40,7 +41,7 @@ FONTS = os.path.join(os.path.dirname(HERE), "fonts")
 FONT = os.environ.get("STICK_FONT", os.path.join(FONTS, "PatrickHand-Regular.ttf"))
 FONT_CX = os.environ.get("STICK_FONT_COMPLEX", os.path.join(FONTS, "Kalam-Bold.ttf"))
 
-# label tag colour, ink, text card centre -> edge. One per look in looks/*.md
+# label tag colour, ink, selfcheck paper centre -> edge. One per look in looks/*.md
 LOOKS = {"warm":    ((252, 244, 222), (58, 34, 18), (236, 190, 105), (196, 132, 58)),
          "bright":  ((255, 253, 246), (28, 32, 44), (252, 249, 238), (196, 222, 240)),
          "ink":     ((255, 255, 255), (20, 20, 20), (252, 251, 247), (232, 229, 220)),
@@ -60,7 +61,8 @@ _cards = {}
 
 
 def card():
-    """Text card: soft radial vignette and faint paper grain (made once per look, float32 to spare RAM)."""
+    """Paper background for --selfcheck only (font and Hindi shaping test). Never used as a scene:
+    scenes always keep their picture on screen."""
     if (CARD_IN, CARD_OUT) not in _cards:
         y, x = np.mgrid[0:H, 0:W].astype(np.float32)
         r = np.clip(np.hypot((x - W / 2) / (W * 0.62), (y - H / 2) / (H * 0.62)), 0, 1)[..., None]
@@ -319,25 +321,43 @@ def place(fr, im, cx, cy, p, motion):
 
 
 def pacing(events, total, out):
-    """Every cut and every overlay is a visual change. Report holds that are too long:
-    over 1.5 s in the first 30 s (the hook), over 3.5 s after it. Target average: ~2.0 s."""
+    """Every cut and every overlay sticker is a visual change. Visual pacing must be dynamic based on the scene:
+    e.g. 1 s for fast cuts, ~2 s on average for proper blend and smooth flow, and up to 3 s for key explanations
+    or emotional breathing room. No unchanged still longer than 3.5 s without a deliberate storytelling reason.
+    In the first 30 s (the hook), visual beats happen faster (aiming for ~1.2-1.5 s on average).
+
+    FRAME COUNT INVARIANT: Total frames/visual beats must ALWAYS be strictly greater than total seconds / 3
+    (changes > total / 3.0), never less. Expected frames ~ total / 2.0 (averaging ~2 seconds per frame)."""
     ev = sorted(set(round(t, 2) for t in events if 0 <= t < total)) + [total]
     holds = []
     for a, b in zip(ev, ev[1:]):
-        limit = 1.5 if a < 30 else 3.5
+        limit = 3.5
         if b - a > limit:
             holds.append((a, b))
-    avg = total / max(1, len(ev) - 1)
-    print(f"pacing: {len(ev) - 1} visual changes, one every {avg:.2f}s on average (target: ~2.0s); "
-          f"hook (0-30s): {sum(1 for t in ev if t < 30)} changes")
-    if avg > 2.5:
-        print(f"  PACE WARNING: Average beat duration is {avg:.2f}s (budget target is ~2.0s per beat).")
+    changes = len(ev) - 1
+    hook = sum(1 for t in ev[:-1] if t < 30)
+    hook_span = min(30.0, total)
+    avg = total / max(1, changes)
+    hook_avg = hook_span / max(1, hook)
+    min_required_frames = total / 3.0
+    expected_frames = total / 2.0
+    print(f"pacing: {changes} visual changes/frames, one every {avg:.2f}s on average (expected ~2.0s); "
+          f"hook (0-{hook_span:.0f}s): {hook} changes, one every {hook_avg:.2f}s")
+    if changes <= min_required_frames:
+        print(f"  PACING INVARIANT VIOLATION: Total visual frames ({changes}) must be GREATER than total seconds / 3 ({min_required_frames:.1f}). "
+              f"Expected ~{expected_frames:.0f} frames (avg ~2s per frame). Pacing is too slow (avg {avg:.2f}s per frame); add more cuts or sticker pop-ins.")
+    elif avg > 2.5:
+        print(f"  overall pacing is slow ({avg:.2f}s avg): aim for dynamic beats (1s, 2s, up to 3s; avg ~2.0s for proper blend)")
+    if hook_avg > 1.8:
+        print(f"  hook is slow ({hook_avg:.2f}s avg): aim for faster changes in the first 30 s (~1.2-1.5s avg)")
     if holds:
-        print("LONG HOLDS (add a cut, a sticker, a counter or an overlay tag on a word in these spans):")
+        print("LONG HOLDS (a still picture with nothing new on it; add a sticker or a cut "
+              "on a word the line names, unless the pause is deliberate):")
         for a, b in holds:
             print(f"  {a:6.1f}s - {b:6.1f}s  ({b - a:.1f}s)")
     else:
         print("no long holds")
+    return changes > min_required_frames and not holds
 
 
 def cross_layer(w, h, k):
@@ -416,17 +436,16 @@ def render_motion(rows, words, total, audio, out):
         if not todo:
             return
         img = sc["row"][1].strip()
-        pic = card() if img == "card" else picture(img)
+        pic = picture(img)
         e = busy(pic)
         side = SPACE.get(os.path.splitext(os.path.basename(img))[0])
-        if img != "card":
-            # stickman heads and bodies are big flat white shapes: no edges inside, so the edge map
-            # calls them "quiet". Count near-white, unsaturated pixels as busy too.
-            a = np.asarray(pic.resize((W // 8, H // 8)), np.int16)
-            white = (a.min(axis=2) > 232) & (a.max(axis=2) - a.min(axis=2) < 14)
-            r, g, b = a[..., 0], a[..., 1], a[..., 2]          # beige / brown cartoon faces and arms
-            skin = (r > 185) & (g > 140) & (b > 100) & (r > g) & (g > b) & (r - b > 35) & (r - b < 105)
-            e = e + white * 60.0 + skin * 40.0
+        # stickman heads and bodies are big flat white shapes: no edges inside, so the edge map
+        # calls them "quiet". Count near-white, unsaturated pixels as busy too.
+        a = np.asarray(pic.resize((W // 8, H // 8)), np.int16)
+        white = (a.min(axis=2) > 232) & (a.max(axis=2) - a.min(axis=2) < 14)
+        r, g, b = a[..., 0], a[..., 1], a[..., 2]          # beige / brown cartoon faces and arms
+        skin = (r > 185) & (g > 140) & (b > 100) & (r > g) & (g > b) & (r - b > 35) & (r - b < 105)
+        e = e + white * 60.0 + skin * 40.0
         taken = [(o["x"], o["y"], o["h"]) for o in sc["ov"] if o["x"] is not None]
         spots = [(0.86, 0.2), (0.14, 0.2), (0.86, 0.78), (0.14, 0.78), (0.5, 0.16),
                  (0.76, 0.3), (0.24, 0.3), (0.78, 0.62), (0.22, 0.62), (0.5, 0.84)]
@@ -451,21 +470,10 @@ def render_motion(rows, words, total, audio, out):
             taken.append((o["x"], o["y"], o["h"]))
 
     def extent(o):
-        """Real on-screen box (w, h, dy) of an overlay: sticker plus its label tag below it."""
+        """Real on-screen box of an overlay sticker."""
         hh = int(o["h"] * H)
-        if o["img"] == "count":
-            num, _, cap = o["text"].partition("|")
-            im = tag_image(f"{float(num.replace(',', '')):,.0f}" + (f"|{cap}" if cap else ""), max(50, hh // 4))
-            return im.width, im.height, 0
-        if o["img"] == "tag":
-            im = tag_image(o["text"], max(46, hh // 4))
-            return im.width, im.height, 0
         st = sticker(o["img"], hh, o.get("plain", False))
-        if not o["text"]:
-            return st.width, st.height, 0
-        tg = tag_image(o["text"], 60)
-        w, h = max(st.width, tg.width), st.height + tg.height - 10
-        return w, h, (tg.height - 10) / 2               # the box centre sits below the sticker centre
+        return st.width, st.height, 0
 
     def separate(sc):
         """Push overlays of one scene apart so no two touch (a 24 px gap), shrinking if they cannot fit."""
@@ -502,18 +510,8 @@ def render_motion(rows, words, total, audio, out):
     def base(sc):
         k = id(sc)
         if k not in cache:
-            _, img, text, pos, extra = [x.strip() for x in sc["row"][:5]]
-            fr = card() if img == "card" else picture(img)
-            blocked = []
-            if extra.startswith("bars:"):
-                bars(fr, extra[5:])
-                blocked.append(CHART)
-            for o in sc["ov"]:                     # keep the scene tag off where stickers land
-                hh = o["h"] * H
-                ww = hh * 1.2
-                blocked.append((o["x"] * W - ww / 2, o["y"] * H - hh / 2, o["x"] * W + ww / 2, o["y"] * H + hh / 2))
-            if text:
-                label(fr, text, "big" if img == "card" else (pos if pos.endswith("!") else "auto"), blocked)
+            _, img = [x.strip() for x in sc["row"][:2]]
+            fr = picture(img)
             cache.clear()
             cache[k] = fr.convert("RGBA")
         return cache[k]
@@ -534,8 +532,7 @@ def render_motion(rows, words, total, audio, out):
             si += 1
         sc = scenes[si]
         prog = [min(1.0, max(0.0, (t - o["t"]) / 0.4)) for o in sc["ov"]]
-        counting = any((o["img"] == "count" and 0 < t - o["t"] < 0.95) or
-                       (o.get("cross") and 0.25 < t - o["t"] < 0.65) for o in sc["ov"])
+        counting = any(o.get("cross") and 0.25 < t - o["t"] < 0.65 for o in sc["ov"])
         key = (si, tuple(round(p, 3) for p in prog), round(t, 3) if counting else 0)
         if key != last_key:
             fr = base(sc).copy()
@@ -543,24 +540,12 @@ def render_motion(rows, words, total, audio, out):
                 if p <= 0:
                     continue
                 cx, cy, hh = o["x"] * W, o["y"] * H, int(o["h"] * H)
-                if o["img"] == "count":
-                    num, _, cap = o["text"].partition("|")
-                    target = float(num.replace(",", ""))
-                    v = target * (1 - (1 - min(1.0, (t - o["t"]) / 0.9)) ** 3)
-                    s_num = f"{int(round(v)):,}" if target >= 1000 else str(int(round(v)))
-                    place(fr, tag_image(s_num + (f"|{cap}" if cap else ""), max(50, hh // 4)), cx, cy, p, o["motion"])
-                elif o["img"] == "tag":
-                    place(fr, tag_image(o["text"], max(46, hh // 4)), cx, cy, p, o["motion"])
-                else:
-                    st = sticker(o["img"], hh, o.get("plain", False))
-                    place(fr, st, cx, cy, p, o["motion"])
-                    if o.get("cross") and t - o["t"] > 0.3:       # strike it out: "no fridge"
-                        k = min(1.0, (t - o["t"] - 0.3) / 0.3)
-                        cr = cross_layer(st.width, st.height, k)
-                        fr.alpha_composite(cr, (int(cx - cr.width / 2), int(cy - cr.height / 2)))
-                    if o["text"]:
-                        tg = tag_image(o["text"], 60)
-                        place(fr, tg, cx, cy + st.height / 2 + tg.height / 2 - 10, p, o["motion"])
+                st = sticker(o["img"], hh, o.get("plain", False))
+                place(fr, st, cx, cy, p, o["motion"])
+                if o.get("cross") and t - o["t"] > 0.3:       # strike it out: "no fridge"
+                    k = min(1.0, (t - o["t"] - 0.3) / 0.3)
+                    cr = cross_layer(st.width, st.height, k)
+                    fr.alpha_composite(cr, (int(cx - cr.width / 2), int(cy - cr.height / 2)))
             last = fr.convert("RGB").tobytes()
             last_key = key
         ff.stdin.write(last)
@@ -574,6 +559,29 @@ def render_motion(rows, words, total, audio, out):
 
 
 # ------------------------------------------------------------------ main
+def check_rows(rows):
+    """Enforce the strict NO-TEXT rule: the video is 100% pure visual storytelling.
+    No on-screen text, no titles, no tags, no captions, no sticker labels, no counters,
+    no bar charts, and no standalone card scenes."""
+    bad = []
+    for n, r in enumerate(rows, 1):
+        r = r + [""] * (5 - len(r))
+        cue, img, text, pos, extra = r[0].strip(), r[1].strip(), r[2].strip(), r[3].strip(), r[4].strip()
+        if img.lower() == "card":
+            bad.append(f"  row {n}: cue {cue} is a full-screen `card` (forbidden: keep the scene picture continuous)")
+        elif img.lower() in ("tag", "count"):
+            bad.append(f"  row {n}: cue {cue} is a `{img}` overlay (forbidden: NO text or counters allowed in video)")
+        elif text:
+            bad.append(f"  row {n}: cue {cue} contains text {text!r} (forbidden: NO on-screen text allowed in video)")
+        elif extra.startswith("bars:"):
+            bad.append(f"  row {n}: cue {cue} contains `bars:` chart (forbidden: NO charts or numbers allowed in video)")
+    if bad:
+        sys.exit("SCENES.tsv contains text or card rows. The video must have NO TEXT AT ALL (no cards, tags, counters, labels, or charts):\n" +
+                 "\n".join(bad) +
+                 "\n\nTo clean up SCENES.tsv automatically (strips all text, tags, counters, and card rows):" +
+                 "\n  python <skill>/scripts/migrate_cards.py SCENES.tsv")
+
+
 def selfcheck():
     for name in LOOKS:
         set_look(name)
@@ -601,19 +609,20 @@ def main():
     set_look(look if look in LOOKS else "bright")
     audio = a.audio or ("mix.wav" if os.path.exists("mix.wav") else "VO.wav")
     words = {f"{r['line']}.{r['i']}": max(0.0, float(r["start"]))
-             for r in csv.DictReader(open("WORDS.tsv", encoding="utf-8"), delimiter="\t")}
-    rows = [r for r in csv.reader(open("SCENES.tsv", encoding="utf-8"), delimiter="\t")
+             for r in csv.DictReader(open("WORDS.tsv", encoding="utf-8-sig"), delimiter="\t")}
+    rows = [r for r in csv.reader(open("SCENES.tsv", encoding="utf-8-sig"), delimiter="\t")
             if r and r[0].strip() and not r[0].startswith("#") and r[0] != "cue"]
     total = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of",
                                   "csv=p=0", audio], capture_output=True, text=True).stdout)
+    check_rows(rows)
     if "--pacing" in sys.argv:                     # report only, render nothing
         ev = []
         for r in rows:
             c = r[0].strip().lstrip("+")
             if c in words:
-                ev.append(words[c] if r[0].strip().startswith("+") or ev else 0.0)
+                ev.append(words[c] - 0.05 if r[0].strip().startswith("+") else (words[c] if ev else 0.0))
         return pacing(ev, total, None)
-    missing = sorted({r[1] for r in rows if r[1] not in ("card", "count", "tag") and not os.path.exists(r[1])})
+    missing = sorted({r[1] for r in rows if not os.path.exists(r[1])})
     if missing:
         sys.exit("missing pictures: " + ", ".join(missing))
     out = a.out or os.path.basename(os.getcwd()) + ".mp4"
@@ -633,19 +642,10 @@ def main():
     cache, lst = {}, []
     for i, r in enumerate(rows):
         r += [""] * (5 - len(r))
-        _, img, text, pos, extra = [x.strip() for x in r[:5]]
-        if img == "card":
-            fr = card()
-        else:
-            if img not in cache:
-                cache[img] = picture(img)
-            fr = cache[img].copy()
-        blocked = []
-        if extra.startswith("bars:"):
-            bars(fr, extra[5:])
-            blocked.append(CHART)
-        if text:
-            label(fr, text, "big" if img == "card" else (pos if pos.endswith("!") else "auto"), blocked)
+        _, img = r[0].strip(), r[1].strip()
+        if img not in cache:
+            cache[img] = picture(img)
+        fr = cache[img].copy()
         p = os.path.abspath(f"frames/{i + 1:03d}.png")
         fr.save(p)
         end = starts[i + 1] if i + 1 < len(rows) else total

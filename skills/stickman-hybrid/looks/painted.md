@@ -4,7 +4,7 @@
 - second-person survival stories and serials ("You have four litres of water left...")
 - disasters, war, expeditions
 
-The pattern is one recurring hero, painted places and stat cards.
+The pattern is one recurring hero, painted places and cut-out sticker props.
 
 **STYLE** (paste this after `look: painted`):
 
@@ -15,7 +15,6 @@ The pattern is one recurring hero, painted places and stat cards.
 - One to three companions, each told apart by one clothing colour or one prop.
 
 **Notes:**
-- Use `card` scenes for the stat cards (`DAY 120|4 LITRES OF WATER|3 PEOPLE`) and for
-  chapter titles.
+- Stats, countdowns, and facts are spoken by the narrator, never written on screen. The screen shows the hero, the environment, and cut-out prop stickers.
 - Keep the same place for several lines in a row and change only what the hero does.
   Painted places cost the most to get right.

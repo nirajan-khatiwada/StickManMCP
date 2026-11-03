@@ -11,5 +11,3 @@ hand-drawn 2D cartoon illustration for a mystery explainer channel, clean dark o
 **Notes:**
 - Keep the faces lit by putting a light source near each character. A dark face disappears
   at thumbnail size.
-- On the text card the words are cream on dark navy. Tags on pictures stay cream, with dark
-  ink.

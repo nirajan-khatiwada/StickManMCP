@@ -11,28 +11,39 @@ until the reviewer approved them.
 
 1. **Still pictures, not animation (motion only from stickers).** Over two-minute stretches, the reference videos are
    92-99% frozen frames: no pan, no zoom, no AI video. What keeps viewers watching is a new
-   picture every 2-3 seconds that shows exactly what is being said. Never add Ken Burns
+   picture or a new beat every couple of seconds that shows exactly what is being said. Never add Ken Burns
    moves or video-model clips. In this pack the stills carry cut-out stickers that pop in on
    the words (§9); that is the only motion.
 
-2. **Pace like the viral video, and measure it.** `render.py --pacing` lists every hold where nothing
-   changes on screen: over 2 s in the first 30 s, over 3.5 s after that. Fix every hold with a beat
-   on a spoken word before rendering:
-   - a cut to another picture
-   - a sticker
-   - a counter or a tag
-   - a "no" sticker for "no fridge, no freezer, no packet" (see §9)
+2. **Pace for continuous visual storytelling, and measure it.** The target is a flexible rhythm, not a
+   fixed shot length. A *visual beat* is a scene change (cut to a new picture) or a sticker pop-in
+   (`+cue elements/cut/NN.png auto,0.28 pop`).
+    - On average a new beat about every 2 s.
+    - **Hook (first 30 s): faster, generally every 1.2-1.5 s,** to capture attention.
+    - **No unchanged still on screen longer than 3.5 s** unless there is a deliberate storytelling
+      reason (an emotional moment, an important explanation that needs breathing room).
+    - Faster for exciting, surprising or information-heavy moments; slightly longer shots for
+      emotional or key moments. Adjust to the narration, the complexity of the scene and the weight
+      of the information.
+    - No unnecessary cuts or animations just to hit a timing target.
 
-   Each beat must be something the line names; never add one just to fill time. A reviewer found
-   12-16 s spans with one frame and asked for "zyada frame, lekin script ke acc". The re-paced Hindi
-   film went from 60 to 96 changes, with 24 in the hook.
-   The viral reference:  The 14M-view reference has 292 shots in 11 minutes:
-   - first 30 s: one picture every ~1.2 s
-   - 30-120 s: one every ~1.8 s
-   - after that: one every ~2.6 s
+    `render.py --pacing` lists every hold where nothing changes on screen (over 2 s in the hook, over
+    3.5 s after it) and reports the hook's average beat. Fix each hold before rendering, using a beat on
+    a spoken word:
+    - a cut to another picture
+    - a sticker pop-in
+    - a "no" sticker for "no fridge, no freezer, no packet" (see §9)
 
-   Its median shot is 2.1 s. Aim for a mean of 2.0-2.6 s, a faster hook, and no shot
-   longer than ~6 s.
+    Each beat must be something the line names; never add one just to fill time. A reviewer found
+    12-16 s spans with one frame and asked for "zyada frame, lekin script ke acc". The re-paced Hindi
+    film went from 60 to 96 changes, with 24 in the hook. Holding every picture a fixed 3 s felt
+    slow, so do not use a fixed length either.
+    The viral reference: the 14M-view reference has 292 shots in 11 minutes:
+    - first 30 s: one picture every ~1.2 s
+    - 30-120 s: one every ~1.8 s
+    - after that: one every ~2.6 s
+
+    Its median shot is 2.1 s. Treat these as a guide, not a rule.
 
 3. **The picture shows the sentence, literally.** Plan every scene from the voiceover line it
    serves:
@@ -56,22 +67,21 @@ until the reviewer approved them.
    - Pick the look by topic (`looks/README.md`) and keep its palette line in every prompt.
    - Before the batch, test 2 shots and look at them.
 
-6. **Text only where the picture cannot say it.** The reference channels let the picture
-   carry the line. A label on every shot was rejected ("they don't use captions, remove
-   them"). Put text only on:
-   - a number or date: "~6 HOURS A DAY", "1498"
-   - a person's name: "RICHARD WRANGHAM | HARVARD"
-   - a place on a map: "NORTHERN ITALY"
-   - a term that cannot be drawn: "BEESWAX", "DATUN (NEEM)"
+6. **NO TEXT AT ALL INSIDE THE VIDEO (Pure visual storytelling).**
+   The viral explainer style relies entirely on expressive spoken narration over evocative illustrations
+   and cut-out stickers—never on-screen text, titles, subtitles, tags, animated counters, or charts.
+   - **Zero on-screen text:** no text cards, no question cards, no sticky tags, no labels under
+     stickers, no numbers, no dates, and no bar charts.
+   - Spoken voiceover carries 100% of the words, numbers, dates, and names; the visuals show them
+     through scenes and sticker props.
+   - Keep the scene illustration (`img/sNN.jpg`) continuous throughout the scene. Standalone `card`
+     rows (`img = "card"`) are forbidden (they flash a flat paper background and break flow).
+   - `render.py` stops with an error if any text, tag, counter, chart, or card row is present in `SCENES.tsv`.
+   - To clean an old `SCENES.tsv` automatically: `python <skill>/scripts/migrate_cards.py SCENES.tsv`.
 
-   That came to 11-13 tags in a 2-minute film. In Hindi text, put digits and Latin punctuation on a line of their own (`पीटर ड्यूरंड|1810`) and leave out colons: in the handwritten Hindi font a `1` reads as `।` and a `:` as `ः`. A line that is only digits and Latin letters is drawn in the Latin font. Text is drawn in code, so spelling is always
-   right, and it is placed automatically in the quietest corner, never over a face. Tags
-   placed by hand ended up "in the characters' mouths".
-
-7. **Data & text tags are drawn in code directly on the active scene.** Percentages go in a bar chart (`bars:RAW=51,COOKED=91`).
-   NEVER use standalone full-screen cards (`img = "card"`) that flash away from the artwork. Instead, overlay all emphasis text,
-   questions, and beats directly on top of the scene using `+<cue> tag <TEXT> auto,0.28 pop`. Number counters overlay as
-   `+<cue> count <NUMBER|CAPTION> 0.5,0.5,0.44 rise`. Tag overlays cost zero picture credits and never obscure faces.
+7. **Dynamic pacing & frame count invariant ($N > T / 3$).**
+   - Shots adapt dynamically to the scene: 1s for fast cuts, ~2s average for smooth blend, up to ~3s for emotional beats.
+   - **Total frame invariant:** Total frames/visual beats must ALWAYS be strictly greater than total expected seconds / 3 ($N > T / 3$), never less. Since each frame averages ~2 seconds expected ($N \approx T / 2$), a 2-minute video (120s) requires $> 40$ frames (target: ~60 frames).
 
 8. **The hook follows a fixed formula.**
    1. Start with the viewer's normal day: "This morning, you picked up a plastic stick..."
@@ -85,8 +95,8 @@ until the reviewer approved them.
    strong enough yet". Never invent studies, dates or quotes.
 
 10. **Flow returns pictures under the wrong number.** In every batch, 2-6 pictures came back
-    swapped. One file was named "sofa" but showed the savanna animals. Always look at
-    `review.jpg` and fix swaps in `PICK.tsv`. Never trust file numbers.
+   swapped. One file was named "sofa" but showed the savanna animals. Always look at
+   `review.jpg` and fix swaps in `PICK.tsv`. Never trust file numbers.
 
 ---
 
@@ -141,25 +151,23 @@ long.
 
 Example: `example/teeth/LINES.tsv`.
 
-### §2 Look and Cast: Strict Character Consistency Protocol
-
-1. **Analyze the Script First:**
-   - Thoroughly read the entire script and identify how many unique characters are required (there may be one narrator/host or multiple historical/story characters).
-   - Define each character in `CAST.tsv` with fixed visual traits: exact facial features, hair, headwear, proportions, clothing, and color palette.
-
-2. **Generate Canonical Reference Images in Google Flow First:**
-   - Use Google Flow text-to-image to create each character first and generate a canonical reference image (`img/ref_<character>.jpg` or multi-character sheet `img/sheet.jpg`).
-   - If using a sheet: `python <skill>/scripts/pictures.py refs <sheet.jpg> --names <name1>,<name2>` to slice into individual references.
-   - Review and lock each `img/ref_<name>.jpg`.
-   - **CRITICAL INVARIANT:** Never recreate, re-roll, or change an already established character. The locked reference image is the single source of truth for the entire film.
-
-3. **Per-Scene Character Mapping (`SHOTS.tsv`):**
-   - For every scene, identify which characters are needed and assign their exact name to the `ref` column (`modern`, `trader`, etc., or `-` for scenes without characters).
-   - When submitting to Google Flow, `pictures.py` automatically supplies the character's reference image (`--image img/ref_<name>.jpg`) to Flow's image-to-image engine.
-   - Maintain exactly the same character appearance, clothing, facial features, proportions, and art style across all scenes.
-
-4. Pick the look from `looks/README.md`. Write `STYLE.txt`: line 1 `look: <name>`, then the
+### §2 Look and cast
+1. Pick the look from `looks/README.md`. Write `STYLE.txt`: line 1 `look: <name>`, then the
    look's STYLE paragraph, adapted to the topic.
+2. Decide the cast from the script:
+   - "you" (the modern person)
+   - one or two story characters, such as a caveman, a farmer or a scientist
+
+   Background people are not cast. Costumes such as an Egyptian or a Ming craftsman are
+   changes written into a shot's prompt, on top of the same face.
+3. Character sheet:
+   - One Flow text-to-image with `--outputs 2`, using the look's sheet prompt and
+     `--folder stick_<project>_sheet --wait`.
+   - Keep the cleaner one. All views must be the same person, with no text.
+4. Split it: `python <skill>/scripts/pictures.py refs <sheet.jpg> --names modern,caveman`.
+   - Characters must not be cut in half.
+   - If they are not evenly spaced, pass `--cuts 0.51` (a fraction of the width).
+   - Look at each `img/ref_*.jpg`.
 
 ### §3 SHOTS.tsv (pictures)
 
@@ -169,10 +177,9 @@ Example: `example/teeth/LINES.tsv`.
   colour of that moment.
 
 **Budget:**
-- About one picture per 3 seconds of film (2 min = 38-44 pictures), plus 6-10 text cards.
-- Reuse a picture when the narration stays on it:
-  - a second scene with a tag added
-  - a bar chart that grows from one value to two
+- **Dynamic pacing based on scene flow (no fixed 3-second hold):** Shots adapt dynamically to narration pacing and emotional weight—e.g. 1 second for fast or surprising beats, ~2 seconds on average for smooth visual flow and proper blend, and up to ~3 seconds for key explanations or emotional breathing room. Aim for an overall average of ~2.0 seconds per visual beat (a cut to a new scene picture or a cut-out sticker pop-in). In a 2-minute film, this produces approximately 40-60 dynamic visual beats tailored to the voiceover.
+- **Frame Count Invariant ($N > T / 3$):** Total frames / visual beats must ALWAYS be strictly greater than expected total seconds / 3 ($N > T / 3$), never less. Since one frame is expected to take ~2 seconds on average, expected frames $\approx T / 2$ (e.g. 120s video: $> 40$ frames minimum, ~60 expected; 300s video: $> 100$ frames minimum, ~150 expected).
+- Reuse a picture when the narration returns to that location or context.
 
 **Prompt rules:**
 - Objects and food: add "no people", or random background characters appear.
@@ -249,25 +256,17 @@ queue with no visible reason. Nothing is wrong with the job, and nothing is lost
 ### §5 SCENES.tsv: cut on the words
 Columns are `cue  img  text  pos  extra`:
 - `cue`: `line.word`, for example `14.5` is the 6th word of line 14 (counting from 0).
-- Leave `pos` empty; render.py chooses the spot.
+- `img`: the scene picture path (`img/sNN.jpg`).
+- `text`, `pos`, `extra`: leave EMPTY.
 
-**How to cut:**
-- Read each line in WORDS.tsv and cut when the line names a new thing.
-  Example: "Bread(10.0). Porridge(10.1). Grain(10.2)" gives three scenes.
-- **Hook** (first ~30 s): cut on every noun.
-- **Later:** cut on each new idea, at most ~6 s per shot.
-- **NO STANDALONE CARDS:** Never use `img = "card"` to flash away from the scene illustration.
-- **Text & Tag Overlays:** Overlay emphasis text, questions, and beats directly on top of the active scene using:
-  `+<cue>  tag    <TEXT>    auto,0.28    pop`
-- **Animated Number Counters:** Overlay directly on the scene using:
-  `+<cue>  count  <NUMBER|CAPTION>  0.5,0.5,0.44  rise`
-- **Reusing one picture:**
-  - add a tag on its second scene, on the word that names the number
-  - two consecutive rows with the same picture and the same text are one scene; merge them
-- **Bar charts:** `extra` = `bars:RAW=51,COOKED=91`. The picture stays; the chart sits on
-  the right.
+**Strict NO-TEXT rule:**
+- Absolutely NO on-screen text, questions, labels, tags, counters, bar charts, or card scenes.
+- The voiceover speaks the story, while the visuals convey the narrative purely through scene illustrations and cut-out stickers.
+- Cut when the line names a new thing. Hook (first ~30 s): cut on every noun or pop a sticker.
+- Later: cut on each new idea; no unchanged still longer than 3.5 s without a sticker or cut, unless the moment deliberately deserves breathing room.
+- To reuse a picture: cut back to it later, or pop a new sticker onto it.
 
-Example: `example/teeth/SCENES.tsv` (51 scenes, 2:10, 13 tags).
+Example: `example/boat_hi/SCENES.tsv`.
 
 ### §6 Collect the pictures
 **Theme consistency comes first.** Every picture of a film must match that film's own chosen
@@ -304,7 +303,7 @@ Use the vox-doc-sound skill: write `cues.tsv` on words, then `mix.py`. Keep it l
   curious explainer it made the narration sound flat
 - about 10 one-shots in 2 minutes, only where the picture shows the sound:
   - a film rewind on "Rewind"
-  - a soft paper slam on a twist card
+  - a soft paper slam on a twist overlay
   - fire crackle on fire
   - a quiet paper "card-place" (`sfx/Kenney_CC0/Paper/card-place-1/2.ogg`, gain -25) on a map pin
     or a sticker, sparingly
@@ -319,7 +318,7 @@ Silence is fine. If a sound is missing, vox-doc-sound says how to make one.
    comes from STYLE.txt, and it writes `<project>.mp4`.
 2. `python <skill>/scripts/pictures.py qc`, then open `qc.jpg` yourself. Check:
    - pictures in the right order
-   - no tag over a face
+   - stickers clear of character faces
    - no Flow sparkle left (delama.py, or render.py's fallback fill)
    - no leftover sheet line-ups
 3. Fix the problems, re-render, and only then show the user.
@@ -331,8 +330,8 @@ Silence is fine. If a sound is missing, vox-doc-sound says how to make one.
    natural scenes, the way the approved `food` film was made.
    - Stickers go to the quietest spot the picture already has, such as sky, ground or a wall
      (`auto`). render.py keeps them off faces, white stickman bodies, skin and the centre.
-   - When a picture has no calm spot, put that line's stickers on a plain collage card right
-     after it.
+   - When a picture has no calm spot, cut to another picture of the same story beat that has one
+     (never to a flat card), or pin that sticker to the best free spot with a fixed `x,y,h`.
    - A test that forced empty left/right/top areas into the pictures (the `space` column) was
      rejected: "left right center wala aacha nahi lag raha". Leave `space` empty. It still exists
      in pictures.py but is not used by default.
@@ -347,18 +346,17 @@ Silence is fine. If a sound is missing, vox-doc-sound says how to make one.
      That is how a film ends up with few stickers; the reviewer asked for more and for no repeats.
    - Maps get a sticker of what the line says happened there: a kangaroo on Australia, the
      dugout on the Netherlands.
-3. **More stickers, all related.** About one sticker per scene picture, plus collage cards with
-   2-4 stickers. A film with few stickers "felt boring". Every sticker shows something the line
+3. **More stickers, all related.** About one sticker per scene picture, and a run of 2-4 stickers
+   on a list beat. A film with few stickers "felt boring". Every sticker shows something the line
    names that the picture does not already show.
-4. **Text & tags overlay directly on scene pictures:** On-screen text, questions, and counters must be overlaid directly on the active scene illustration using `+<cue> tag ...` and `+<cue> count ...`. NEVER cut away to a standalone full-screen blank/paper card (`img = "card"`). The renderer automatically places tags in the quietest free area (sky/walls) to ensure characters and faces are never covered.
+4. **Zero on-screen text:** The film is completely text-free. No beat cards, no question phrases,
+   no labels, no tags, and no counters. The narrative is communicated entirely through the spoken voice
+   and evocative visuals (scene illustrations and cut-out stickers).
 This is the stills film with Vox-style cut-outs added on top. It has the same script, voice
 and scene pictures. A small set of sticker PNGs then pops in on the spoken words:
 - objects such as the toothbrush, the beeswax or a flint
 - character poses
-- animated counters ("0 → 14,000 YEARS AGO")
-- tags
-- now and then a paper collage beat, for example three toothbrushes on a timeline:
-  1498 → c. 1780 → 1938
+- now and then a paper collage beat, for example three toothbrushes on a timeline
 
 This pack always makes it. A reviewer approved it as the main style.
 
@@ -378,11 +376,11 @@ This pack always makes it. A reviewer approved it as the main style.
    cutouts again.
 4. **SCENES.tsv overlay rows.** A row whose cue starts with `+` belongs to the scene above it
    and pops in on that word:
-   - `+15.5  elements/cut/10.png  tiny scratch marks  auto,0.4  pop`
-   - `+06.1  count  14000|YEARS AGO  0.7,0.5,0.42  rise`
-   - `+03.0  tag  2 MINUTES  auto,0.3  pop`
-   - A paper collage beat is a scene row with `card` and no text, plus overlay rows with
-     fixed `x,y,h`.
+   - `+15.5  elements/cut/10.png    auto,0.28  pop`
+   - Leave `text` empty. Stickers never have text labels.
+   - Never use `tag` or `count` rows: no on-screen text or counters anywhere in the video.
+   - A collage beat is several overlay rows on the live picture (stickers with `auto,<h>` or a fixed
+     `x,y,h`). Never a `card` scene.
    - Motions: `pop` (default), `slideL`, `slideR`, `rise`.
    - **"No X" moments** ("no smoke, no fire", "no fridge"): generate the sticker with the sign
      already inside it. A red X drawn in code looked cheap to a reviewer; do not use `pop+x`.
@@ -401,11 +399,9 @@ This pack always makes it. A reviewer approved it as the main style.
    - Big white stickman heads are counted as busy, because plain edge detection called them
      empty and a sticker landed on a head.
    - Auto placement prefers the corners and the top, and keeps off the centre, where the main
-     element usually is. Auto stickers are at most 0.34 of the frame high (default 0.3), and tag
-     text is small (70 px; 60 px under a sticker). A reviewer found bigger text and centred
-     stickers covered the main subject.
-   - Two stickers in one scene never overlap: render.py measures each one with its label and
-     pushes them apart, shrinking them if they cannot fit.
+     element usually is. Auto stickers are at most 0.34 of the frame high (default 0.3).
+   - Two stickers in one scene never overlap: render.py measures each one and pushes them apart,
+     shrinking them if they cannot fit.
    - After `pictures.py qc`, pin any sticker that still sits near a face to a fixed `x,y,h`.
    - Flow also swaps files ACROSS folders: a scene picture once landed among the stickers and a
      sticker among the scenes. Move such a file into the right folder, renamed to the right
@@ -417,7 +413,7 @@ This pack always makes it. A reviewer approved it as the main style.
    - Copy `img/`, `elements/`, `STYLE.txt`, SHOTS and ELEMENTS, then translate LINES.tsv line by
      line, keeping the ids.
    - Make the new voice and WORDS.tsv (`align.py --lang hi`).
-   - Rewrite only SCENES.tsv: cues on the new words, text in the new language.
+   - Rewrite only SCENES.tsv: cues on the new words.
    - No new pictures are needed. See `example/food_hi`.
 
 Examples: `example/food/` (17 stickers, 28 overlays, 37 scenes), `example/food_hi/` (the same
@@ -427,7 +423,7 @@ film in Hindi), `example/teeth_hybrid/` (20 stickers, 29 overlays, 47 scenes).
 
 ## Part 4: Flow, as it actually behaves
 
-- **Swapped pictures** happen in every batch (see rule 10). Fix them with PICK.tsv.
+- **Swapped pictures** happen in every batch (see rule 11). Fix them with PICK.tsv.
 - **Repeated submissions.** One extension build re-submitted the same prompt up to 4 times
   when it missed a finished picture. The duplicates arrive as "N - name (1).jpg";
   `pictures.py` always takes the first.
@@ -452,7 +448,7 @@ film in Hindi), `example/teeth_hybrid/` (20 stickers, 29 overlays, 47 scenes).
 ## Part 5: Credits
 
 - **Flow credits** go only on pictures: about 40 for a 2-minute film, plus the sheet and
-  any retries. The hybrid look adds about 20 stickers. Cards, tags, charts, the voice, the mix and the render are free.
+  any retries. The hybrid look adds about 20 stickers. Voice, mix and render are free.
 - **Agent context & token usage** grows with conversation length and with every image looked at.
   - QC from grids (`review.jpg`, `qc.jpg`), never frame by frame. One grid costs the same as
     one frame.
@@ -465,11 +461,11 @@ film in Hindi), `example/teeth_hybrid/` (20 stickers, 29 overlays, 47 scenes).
 - [ ] Script approved; facts checked, debated points worded as such
 - [ ] Look matches the topic; 2 test shots looked at before the batch
 - [ ] Every character shot used the right per-character reference
-- [ ] SCENES cut on spoken words: mean shot 2.0-2.6 s, hook faster, none over ~6 s
-- [ ] Text only for numbers and dates, names, map places and unseen terms; 6-10 cards
+- [ ] SCENES cut on spoken words: a beat about every 2 s, hook every 1.2-1.5 s, no still over 3.5 s without a deliberate reason (`render.py --pacing` clean or each hold justified)
+- [ ] Zero on-screen text: no cards, no tags, no counters, no labels, no charts (100% pure visual storytelling)
 - [ ] review.jpg checked and PICK.tsv written; no duplicates
 - [ ] Mix at -14 LUFS, voice on top, a few SFX on the words
-- [ ] qc.jpg checked by you; tags off faces; re-rendered after fixes
+- [ ] qc.jpg checked by you; stickers off faces; re-rendered after fixes
 - [ ] Licence check, written in PROGRESS.md:
   - **Voice:** Kokoro or Indic Parler (both Apache 2.0), or the user's own recording or key.
     Never edge-tts or Edge/Azure "Neural" voices: edge-tts drives the Edge browser's

@@ -1,7 +1,7 @@
 # Stickman Hybrid Animation & Documentary System
 ### Antigravity Agent Edition · Viral Documentary Explainer Pipeline
 
-An end-to-end autonomous video production pipeline designed for **Antigravity**. It generates viral, high-retention documentary explainer videos in the **Hybrid Look**—combining full-color scene illustrations (Google Flow / Nano Banana 2), pop-in cut-out stickers, paper collage beats, animated counters, expressive multilingual narration, and broadcast-grade sound design (-14 LUFS).
+An end-to-end autonomous video production pipeline designed for **Antigravity**. It generates viral, high-retention documentary explainer videos in the **Hybrid Look**—combining full-color scene illustrations (Google Flow / Nano Banana 2), pop-in cut-out stickers, paper collage beats, expressive multilingual narration, and broadcast-grade sound design (-14 LUFS). Completely text-free visuals with zero on-screen clutter.
 
 ---
 
@@ -312,15 +312,17 @@ sequenceDiagram
    - Produces `WORDS.tsv` with start/end timestamps for every script word.
 4. **Stage 4 — Scenes & Pacing (`SCENES.tsv`):**
    - Maps cuts and sticker pop-ins (`+cue`) to spoken words.
-   - Runs `render.py --pacing` to ensure no visual hold exceeds 2.5–3 seconds.
+   - Runs `render.py --pacing`: enforces dynamic pacing based on the scene (e.g. 1 s for fast cuts, ~2 s average for smooth blend and proper flow, up to 3 s for breathing room; never a fixed 3-second hold). In the 30 s hook, visual beats occur every 1.2-1.5 s.
+   - **Frame Count Invariant ($N > T / 3$):** Total frames / visual beats must ALWAYS be strictly greater than total expected video seconds / 3, never less. Since each frame averages ~2 seconds expected ($N \approx T / 2$), a 2-minute video requires $> 40$ frames (target: ~60 frames).
+   - Completely text-free visuals: NO on-screen text, NO tags, NO counters, NO cards. All verbal content is spoken in the narration; visuals consist 100% of scene illustrations and cut-out stickers.
 5. **Stage 5 — Collect & Swap Pictures:**
    - Generates `review.jpg` contact sheet (`pictures.py review`).
    - Swaps any off-model generations via `PICK.tsv` and `pictures.py pick`.
 6. **Stage 6 — Sound Design (`cues.tsv`, `mix.py`):**
-   - Positions subtle whooshes on camera transitions, UI pops on stickers, and paper rustles on collage cards.
+   - Positions subtle whooshes on camera transitions, UI pops on stickers, and paper rustles on collage beats.
    - Mixes audio beds to broadcast loudness (-14 LUFS / -16 LUFS vocal anchor).
 7. **Stage 7 — Render & Quality Control (`render.py`, `qc.jpg`):**
-   - Renders high-bitrate MP4 with complex font subtitles.
+   - Renders high-bitrate MP4 frame-by-frame with smooth sticker pop-in animations.
    - Runs `pictures.py qc` to generate `qc.jpg`. Agent self-inspects the contact sheet to ensure no stickers cover character faces and no artifacts remain.
    - Delivers clickable link to the final video.
 
@@ -340,7 +342,7 @@ Projects are kept completely isolated in `~/StickmanHybrid/<topic-slug>/`:
 ├── ELEMENTS.tsv         # Pop-in sticker cut-out prompts
 ├── VO.wav               # Master narration audio (user or automated)
 ├── WORDS.tsv            # Millisecond word timing from align.py
-├── SCENES.tsv           # Shot sequences, sticker cues (+cue), and text cards
+├── SCENES.tsv           # Shot sequences and sticker pop-in cues (+cue)
 ├── cues.tsv             # SFX & music placement cues
 ├── PICK.tsv             # Chosen Flow picture swaps
 ├── mix.wav              # Final mastered sound mix (-14 LUFS)
@@ -354,7 +356,8 @@ Projects are kept completely isolated in `~/StickmanHybrid/<topic-slug>/`:
 
 ### Scripts (`skills/stickman-hybrid/scripts/`)
 
-- `render.py`: Master compositor. Joins frames on words, keys stickers, shapes Devanagari text via `libass`, checks pacing (`--pacing`), and renders MP4.
+- `render.py`: Master compositor. Joins frames on words, keys stickers, checks pacing (`--pacing`), and renders MP4.
+- `migrate_cards.py`: Strips full-screen card rows and all on-screen text, tags, counters, and labels from `SCENES.tsv` for pure visual storytelling.
 - `pictures.py`: Manages the Google Flow pipeline (`refs`, `submit`, `review`, `pick`, `qc`).
 - `delama.py`: Neural inpainting utility powered by `big-lama.pt`. Cleans corner watermarks in batch or background watch mode (`--watch`).
 - `key.py`: High-accuracy magenta chroma-keying for sticker cut-outs.
@@ -381,7 +384,7 @@ Projects are kept completely isolated in `~/StickmanHybrid/<topic-slug>/`:
 
 ### Stickers Overlap or Cover Faces
 - **Symptom:** Pop-in cut-out obscures a character's face.
-- **Fix:** `render.py` automatically spaces stickers. If an element crowds a face, mark its column in `ELEMENTS.tsv` or `SCENES.tsv` with a specific anchor (`left`, `right`, `top`, or `card`), or change its cue word to a quieter pause in the sentence.
+- **Fix:** `render.py` automatically spaces stickers. If an element crowds a face, mark its column in `ELEMENTS.tsv` or `SCENES.tsv` with a fixed `x,y,h` position (for example `0.86,0.24,0.24`), or change its cue word to a quieter pause in the sentence.
 
 ---
 
